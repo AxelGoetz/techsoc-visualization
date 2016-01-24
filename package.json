@@ -1,0 +1,16 @@
+{
+  "name": "browserify-babel-demo",
+  "main": "dist/module.js",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "babelify": "^6.1.0",
+    "grunt-browserify": "^3.8.0",
+    "grunt-contrib-watch": "^0.6.1"
+  },
+  "dependencies": {
+    "d3": "^3.5.13",
+    "fs": "0.0.2",
+    "lodash": "^4.0.0",
+    "request-promise": "^2.0.0"
+  }
+}
