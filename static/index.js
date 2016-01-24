@@ -174,7 +174,9 @@ function getFacebookEvents() {
     facebookData = response.data.data;
     _.map(facebookData, extractDate);
     addMissingDaysFacebook();
-    membersBarChart();
+    // TODO: CHANGE THIS
+    // membersBarChart();
+    cumulativeLineChar();
   });
 }
 
@@ -247,8 +249,14 @@ function addAxisMemberBarChart(g, bounds, y) {
     .call(xAxis);
 
   g.append("g")
-    .attr("class", "y axis")
-    .call(yAxis);
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Members");
 }
 
 // Adds y axis for facebook events
@@ -418,9 +426,133 @@ function membersBarChart() {
 // Cumulative line chart visualization
 // ----------------------------------------------------------
 
+// Calcualtes the total amount of members
+function totalMembers() {
+  let members = 0;
+  _.map(membersPerDay, (d) => (members += d.membersJoined));
+  return members;
+}
+
+// Add the axis for the cumulative graph
+function addAxisCumulativeChart(g, bounds, y) {
+  let x = d3.scale.ordinal()
+    .rangeRoundBands([0, bounds.width], 0.1);
+
+  let xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+  let yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+  g.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + bounds.height + ")")
+    .call(xAxis);
+
+  g.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Members");
+}
+
+// Adds the text information to the circle
+// elements
+function addTextCumulativeGraph(circles, bounds) {
+  let text = circles.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr('transform', 'translate(' + -100 + ", " + -50 + ")")
+    .attr("display", "none");
+
+  text.selectAll('tspan')
+      .data((d) => d.values === null ? [] : d.values)
+    .enter().append('tspan')
+      .attr('x', 0)
+      .attr('dy', '1.2em')
+      .text((d) => ("20" + d.key + ": " + d.values));
+
+  let totalSpan = text.insert('tspan', ":first-child");
+  totalSpan
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => "Total: " + d.membersJoined);
+
+  let date = text.insert('tspan', ":first-child");
+  date
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => String(d.key).slice(4, 15));
+}
+
+// Function responsible for drawing lines
+function drawLines(g, bounds, y, linex) {
+  let currentTotal = 0;
+  let line = d3.svg.line()
+    .x((d, i) => (i * linex))
+    .y((d) => {
+      currentTotal += d.membersJoined;
+      return y(currentTotal);
+    });
+
+  g.append('path')
+    .datum(membersPerDay)
+    .attr('class', 'line')
+    .attr('d', line);
+}
+
+// Draw the circles, which we will use to display more
+// information
+function drawCircles(g, bounds, y, linex) {
+  let currentTotal = 0;
+  let circles = g.selectAll("g")
+    .data(membersPerDay)
+  .enter().append("g")
+    .attr("transform", (d, i) => {
+      currentTotal += d.membersJoined;
+      return "translate(" + linex*i + "," + y(currentTotal) + ")";
+    })
+    .on('mouseover',function() {
+      d3.select(this)
+        .select('text')
+        .attr('display', 'inline');
+    })
+    .on('mouseout', function() {
+      d3.select(this)
+        .select('text')
+        .attr('display', 'none');
+    });
+
+  circles.append("circle")
+      .attr("cx", 0)
+      .attr("cy", 0)
+      .attr("r", 2)
+
+  addTextCumulativeGraph(circles, bounds);
+}
+
 // Main function that is responsible for adding the
 // cumulative line chart
 function cumulativeLineChar() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
+
+  let y = d3.scale.linear()
+    .range([bounds.height, 0]);
+  y.domain([0, totalMembers()]);
+  let linex = bounds.width / membersPerDay.length;
+
+  drawLines(g, bounds, y, linex);
+  drawCircles(g, bounds, y, linex);
+
+  addAxisCumulativeChart(g, bounds, y);
 }
+
+// Members per year visualization
+// ----------------------------------------------------------

@@ -38,6 +38,10 @@ html, body {
   fill: #171C44;
 }
 
+circle {
+  fill: #171C44;
+}
+
 .bar:hover {
   fill: gray;
 }
@@ -56,4 +60,10 @@ html, body {
 
 .attending:hover {
   fill: gray;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
 }
