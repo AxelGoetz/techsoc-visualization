@@ -1,13 +1,12 @@
 import d3 from "d3";
 import _ from "lodash";
-
-const fs = require("fs");
-const rp = require("request-promise");
+import axios from "axios";
 
 // Global to store member data
 let memberData = [];
 let membersPerDay = [];
 let membersPerYear = [];
+let facebookData = [];
 
 // Extracting Data
 // ----------------------------------------------------------
@@ -54,6 +53,42 @@ function getMembersPerYear() {
     .entries(memberData);
 }
 
+// Get facebook event data
+// ----------------------------------------------------------
+var ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
+
+// Replaces string with a date for facebook events
+function extractDate(dataPoint) {
+  let msec = Date.parse(dataPoint.start_time.slice(0, 10));
+  dataPoint.start_time = new Date(msec);
+}
+
+// Gets the data for all the events that are on facebook
+function getFacebookEvents() {
+  axios.get("https://graph.facebook.com/v2.5/UCLUTechSoc/events", {
+    params: {
+      access_token: ACCESS_TOKEN,
+      fields: [
+        "name",
+        "start_time",
+        "attending_count",
+        "interested_count"
+      ].join(","),
+      limit: 200,
+      json: true
+    }
+  })
+  .then(function(response) {
+    facebookData = response.data.data;
+    _.map(facebookData, extractDate);
+  });
+}
+
+
+
+// GET ALL THE DATAAAAA
+// ----------------------------------------------------------
+
 // Actually extracting data from csv and
 // placing in in the memberData, membersPerDay
 // and membersPerYear variables
@@ -61,30 +96,10 @@ d3.csv('./data/members.csv', (error, data) => {
   _.map(data, extractData);
   getMembersPerDay();
   getMembersPerYear();
+  getFacebookEvents();
   // TODO: Call first visualize function here!!
 });
 
-// Get facebook event data
-// ----------------------------------------------------------
-var ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
-
-function getFacebookEvents() {
-  return rp({
-    uri: "https://graph.facebook.com/v2.5/UCLUTechSoc/events",
-    qs: {
-      access_token: ACCESS_TOKEN,
-      fields: [
-        "attending_count",
-        "interested_count"
-      ].join(",")
-    },
-    json: true
-  }).then(function(response) {
-    console.log(response.data);
-  });
-}
-
-getFacebookEvents();
 
 // First Bar Chart Visualization
 // ----------------------------------------------------------
