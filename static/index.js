@@ -215,7 +215,7 @@ function getBounds() {
   let bounds = body.node().getBoundingClientRect();
 
   let bound = {height: bounds.height, width: bounds.width, margin:
-    {top: 40, right: 30, bottom: 30, left: 40}};
+    {top: 50, right: 30, bottom: 30, left: 100}};
 
   bound.height -= 100; // because of header
   bound.width -= (bound.margin.left + bound.margin.right);
@@ -303,7 +303,7 @@ function addTextFacebookBarChart(bar, bounds) {
   let text = bar.append("text")
     .attr("x", 0)
     .attr("y", 0)
-    .attr('transform', 'translate(' + 0 + ", " + (bounds.height - 100) + ")")
+    .attr('transform', 'translate(' + -100 + ", " + (bounds.height - 100) + ")")
     .attr("display", "none");
 
   text.append('tspan')
