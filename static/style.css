@@ -7,7 +7,7 @@ html, body {
   margin: 0 auto;
   width: 50%;
   height: 50px;
-  border: 2px solid black;
+  border: 2px solid #171C44;
   border-radius: 20px;
 }
 
@@ -21,6 +21,11 @@ html, body {
 
 .header ul li {
   padding: 0px 10px;
+  color: #171C44;
+}
+
+.header ul li:hover {
+  color: grey;
 }
 
 .axis text {
