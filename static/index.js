@@ -176,7 +176,8 @@ function getFacebookEvents() {
     addMissingDaysFacebook();
     // TODO: CHANGE THIS
     // membersBarChart();
-    cumulativeLineChar();
+    // cumulativeLineChart();
+    membersPerYearBarChart();
   });
 }
 
@@ -217,7 +218,7 @@ function getBounds() {
   let bounds = body.node().getBoundingClientRect();
 
   let bound = {height: bounds.height, width: bounds.width, margin:
-    {top: 20, right: 30, bottom: 30, left: 40}};
+    {top: 40, right: 30, bottom: 30, left: 40}};
 
   bound.height -= 100; // because of header
   bound.width -= (bound.margin.left + bound.margin.right);
@@ -532,14 +533,14 @@ function drawCircles(g, bounds, y, linex) {
   circles.append("circle")
       .attr("cx", 0)
       .attr("cy", 0)
-      .attr("r", 2)
+      .attr("r", 2);
 
   addTextCumulativeGraph(circles, bounds);
 }
 
 // Main function that is responsible for adding the
 // cumulative line chart
-function cumulativeLineChar() {
+function cumulativeLineChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
 
@@ -556,3 +557,47 @@ function cumulativeLineChar() {
 
 // Members per year visualization
 // ----------------------------------------------------------
+
+// This function draws the bars
+function drawYearBarChart(g, bounds, barWidth, y) {
+  let bar = g.selectAll("g")
+      .data(membersPerYear)
+    .enter().append("g")
+      .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
+      .attr("class", "bar year");
+
+  bar.append("rect")
+    .attr("width", barWidth - 1)
+    .attr("y", d => y(d.values))
+    .attr("height", d => (bounds.height - y(d.values)));
+
+  let text = bar.append("text")
+    .attr("x", barWidth/3)
+    .attr("y", (d) => (y(d.values) - 40));
+
+  text.append('tspan')
+    .attr('x', barWidth/3)
+    .attr('dy', '1.2em')
+    .text((d) => ('20' + d.key));
+
+  text.append('tspan')
+    .attr('x', barWidth/4)
+    .attr('dy', '1.2em')
+    .text((d) => ('Total: ' + d.values));
+}
+
+// Main function for the members organized
+// per year bar chart
+function membersPerYearBarChart() {
+  let bounds = getBounds();
+  let g = addNewSVG(bounds);
+  console.log(membersPerYear);
+
+  let y = d3.scale.linear()
+    .range([bounds.height, 0]);
+  y.domain([0, d3.max(membersPerYear, d => d.values)]);
+  let barWidth = bounds.width / membersPerYear.length;
+
+  drawYearBarChart(g, bounds, barWidth, y);
+  addAxisCumulativeChart(g, bounds, y);
+}
