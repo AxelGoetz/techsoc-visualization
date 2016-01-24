@@ -295,7 +295,7 @@ function addTextFacebookBarChart(bar, bounds) {
   text.append('tspan')
     .attr('x', 0)
     .attr('dy', '1.2em')
-    .text(d => String(d.key).slice(4, 15));
+    .text(d => String(d.start_time).slice(4, 15));
 
   text.append('tspan')
     .attr('x', 0)
