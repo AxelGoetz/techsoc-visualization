@@ -36,7 +36,7 @@ function sortMembersPerDay(a, b) {
 function addMissingDays() {
   membersPerDay.sort(sortMembersPerDay);
   let length = membersPerDay.length - 1;
-  for(var i = 0; i < length; i++) {
+  for(let i = 0; i < length; i++) {
     membersPerDay[i].key = new Date(membersPerDay[i].key);
     membersPerDay[i].key.setHours(1);
     let nextDay = new Date(membersPerDay[i].key);
@@ -85,7 +85,7 @@ function getMembersPerYear() {
 
 // Get facebook event data
 // ----------------------------------------------------------
-var ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
+let ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
 
 // Replaces string with a date for facebook events
 function extractDate(dataPoint) {
@@ -111,13 +111,25 @@ function tooOldOrNew(date) {
   return false;
 }
 
+// Adds the missing days before the first event
+// in order to make sure that events align
+function addMissingDaysFirstEvent() {
+  while(facebookData[0].start_time.getTime() != (new Date(membersPerDay[0].key)).getTime()) {
+    let prevDay = new Date(facebookData[0].start_time);
+    prevDay.setDate(facebookData[0].start_time.getDate() - 1);
+    let tempObj = {start_time: prevDay, id: "", attending_count: 0, interested_count: 0, name: ""};
+    facebookData.push(tempObj);
+    facebookData.sort(sortFacebook);
+  }
+}
+
 // Adds missing days with no events to facebook
 // Also removes very old events and events in the fuuuuutureeee
 function addMissingDaysFacebook() {
   facebookData.sort(sortFacebook);
   let length = facebookData.length - 1;
 
-  for(var i = 0; i < length; i++) {
+  for(let i = 0; i < length; i++) {
     facebookData[i].start_time = new Date(facebookData[i].start_time);
     facebookData[i].start_time.setHours(1);
     if(tooOldOrNew(facebookData[i].start_time)) {
@@ -140,6 +152,7 @@ function addMissingDaysFacebook() {
       length++;
     }
   }
+  addMissingDaysFirstEvent();
 }
 
 // Gets the data for all the events that are on facebook
@@ -333,9 +346,15 @@ function addMembersBars(bounds, g, barWidth) {
       });
 
   bar.append("rect")
+    .attr("width", barWidth - 1)
+    // uncomment below for an animation
+    // .attr("height", 0)
+    // .attr("y", bounds.height/2)
+    // .transition().delay(function (d,i){ return i * 300;})
+    // .duration(100)
     .attr("y", d => y(d.membersJoined))
-    .attr("height", d => (bounds.height/2 - y(d.membersJoined)))
-    .attr("width", barWidth - 1);
+    .attr("height", d => (bounds.height/2 - y(d.membersJoined)));
+
 
   addTextMemberBarChart(bar, bounds);
   addAxisMemberBarChart(g, bounds, y);
@@ -385,15 +404,23 @@ function addEventsBars(bounds, g, barWidth) {
   addFacebookAxis(g, y);
 }
 
-// Functions that adds the barchart for then
-// membersPerDay data
+// Main function that is responsible for adding
+// the bar chart
 function membersBarChart() {
-  console.log(facebookData);
   let bounds = getBounds();
   let g = addNewSVG(bounds);
 
   let barWidth = bounds.width / membersPerDay.length;
   addMembersBars(bounds, g, barWidth);
   addEventsBars(bounds, g, barWidth);
+}
 
+// Cumulative line chart visualization
+// ----------------------------------------------------------
+
+// Main function that is responsible for adding the
+// cumulative line chart
+function cumulativeLineChar() {
+  let bounds = getBounds();
+  let g = addNewSVG(bounds);
 }
