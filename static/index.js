@@ -174,10 +174,7 @@ function getFacebookEvents() {
     facebookData = response.data.data;
     _.map(facebookData, extractDate);
     addMissingDaysFacebook();
-    // TODO: CHANGE THIS
-    // membersBarChart();
-    // cumulativeLineChart();
-    membersPerYearBarChart();
+    membersBarChart();
   });
 }
 
@@ -601,3 +598,13 @@ function membersPerYearBarChart() {
   drawYearBarChart(g, bounds, barWidth, y);
   addAxisCumulativeChart(g, bounds, y);
 }
+
+// Adding Event Listeners
+// ----------------------------------------------------------
+let id1 = document.getElementById('function1');
+let id2 = document.getElementById('function2');
+let id3 = document.getElementById('function3');
+
+id1.addEventListener("click", membersBarChart);
+id2.addEventListener("click", cumulativeLineChart);
+id3.addEventListener("click", membersPerYearBarChart);
