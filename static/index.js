@@ -26,23 +26,29 @@ function extractData(dataPoint) {
 }
 
 function sortMembersPerDay(a, b) {
+  a.key = new Date(a.key);
+  b.key = new Date(b.key);
   return a.key - b.key;
 }
 
 // Adds days that are not in the current data
 // with a membersPerDay of 0
 function addMissingDays() {
+  membersPerDay.sort(sortMembersPerDay);
   let length = membersPerDay.length - 1;
   for(var i = 0; i < length; i++) {
     membersPerDay[i].key = new Date(membersPerDay[i].key);
-    let nextDay = new Date(membersPerDay[i].key.getTime());
+    membersPerDay[i].key.setHours(1);
+    let nextDay = new Date(membersPerDay[i].key);
     nextDay.setDate(membersPerDay[i].key.getDate() + 1);
 
     let nextDayObject = new Date(membersPerDay[i + 1].key);
-    if(nextDay != nextDayObject) {
+    nextDayObject.setHours(1);
+    if(nextDay.getTime() != nextDayObject.getTime()) {
       let tempObj = {key: nextDay, membersJoined: 0, values: null};
       membersPerDay.push(tempObj);
       membersPerDay.sort(sortMembersPerDay);
+      length++;
     }
   }
 }
@@ -87,6 +93,55 @@ function extractDate(dataPoint) {
   dataPoint.start_time = new Date(msec);
 }
 
+function sortFacebook(a, b) {
+  a.start_time = new Date(a.start_time);
+  b.start_time = new Date(b.start_time);
+  return a.start_time - b.start_time;
+}
+
+// Checks if facebook event is too old or new
+function tooOldOrNew(date) {
+  let oldestTicket = new Date(membersPerDay[0].key);
+  let newestTicket = new Date(membersPerDay[membersPerDay.length - 1].key);
+  date = date.getTime();
+
+  if((date < oldestTicket.getTime()) || (date > newestTicket.getTime())) {
+    return true;
+  }
+  return false;
+}
+
+// Adds missing days with no events to facebook
+// Also removes very old events and events in the fuuuuutureeee
+function addMissingDaysFacebook() {
+  facebookData.sort(sortFacebook);
+  let length = facebookData.length - 1;
+
+  for(var i = 0; i < length; i++) {
+    facebookData[i].start_time = new Date(facebookData[i].start_time);
+    facebookData[i].start_time.setHours(1);
+    if(tooOldOrNew(facebookData[i].start_time)) {
+      facebookData.splice(i, 1);
+      length--; i--;
+      continue;
+    }
+    let nextDay = new Date(facebookData[i].start_time);
+    nextDay.setDate(facebookData[i].start_time.getDate() + 1);
+
+    let nextDayObject = new Date(facebookData[i + 1].start_time);
+    nextDayObject.setHours(1);
+    if(facebookData[i].start_time.getTime() == nextDayObject.getTime()) {
+      facebookData.splice(i, 1);
+      length--; i--;
+    } else if(nextDay.getTime() != nextDayObject.getTime()) {
+      let tempObj = {start_time: nextDay, id: "", attending_count: 0, interested_count: 0, name: ""};
+      facebookData.push(tempObj);
+      facebookData.sort(sortFacebook);
+      length++;
+    }
+  }
+}
+
 // Gets the data for all the events that are on facebook
 function getFacebookEvents() {
   axios.get("https://graph.facebook.com/v2.5/UCLUTechSoc/events", {
@@ -105,6 +160,8 @@ function getFacebookEvents() {
   .then(function(response) {
     facebookData = response.data.data;
     _.map(facebookData, extractDate);
+    addMissingDaysFacebook();
+    membersBarChart();
   });
 }
 
@@ -119,7 +176,6 @@ d3.csv('./data/members.csv', (error, data) => {
   getMembersPerDay();
   getMembersPerYear();
   getFacebookEvents();
-  membersBarChart();
 });
 
 // Visualization helper functions
@@ -182,6 +238,17 @@ function addAxisMemberBarChart(g, bounds, y) {
     .call(yAxis);
 }
 
+// Adds y axis for facebook events
+function addFacebookAxis(g, y) {
+  let yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+  g.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+}
+
 // Adds the hidden text to every bar
 // containing how many members joined that day
 // and which year they joined ucl
@@ -199,23 +266,61 @@ function addTextMemberBarChart(bar, bounds) {
       .attr('dy', '1.2em')
       .text((d) => ("20" + d.key + ": " + d.values));
 
-  let tspan = text.insert('tspan', ":first-child");
-
-  tspan
+  let totalSpan = text.insert('tspan', ":first-child");
+  totalSpan
     .attr('x', 0)
     .attr('dy', '1.2em')
-    .text(d => "Members joined: " + d.membersJoined);
+    .text(d => "Total: " + d.membersJoined);
 
+  let date = text.insert('tspan', ":first-child");
+  date
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => String(d.key).slice(4, 15));
+}
+
+// Adds the text on hover for facebook
+function addTextFacebookBarChart(bar, bounds) {
+  let text = bar.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr('transform', 'translate(' + 0 + ", " + (bounds.height - 100) + ")")
+    .attr("display", "none");
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => d.name);
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => String(d.key).slice(4, 15));
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => ("Attending: " + d.attending_count));
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => ("Interested: " + d.interested_count));
 }
 
 
 // Function responsible for actually adding the member bars
-function addMembersBars(bounds, g, y, barWidth) {
-  let bar = g.selectAll("g")
+function addMembersBars(bounds, g, barWidth) {
+  let y = d3.scale.linear()
+    .range([(bounds.height/2), 0]);
+
+  y.domain([0, d3.max(membersPerDay, d => d.membersJoined )]);
+
+  let bar = g.selectAll(".members")
       .data(membersPerDay)
     .enter().append("g")
       .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
-      .attr("class", "bar")
+      .attr("class", "bar members")
       .on('mouseover',function() {
         d3.select(this)
           .select('text')
@@ -236,17 +341,59 @@ function addMembersBars(bounds, g, y, barWidth) {
   addAxisMemberBarChart(g, bounds, y);
 }
 
+// Adds the bars for all of the facebook events
+function addEventsBars(bounds, g, barWidth) {
+  let y = d3.scale.linear()
+    .range([(bounds.height/2), (bounds.height)]);
+
+  y.domain([0, d3.max(facebookData, d =>
+    (d.interested_count > d.attending_count) ? d.interested_count : d.attending_count)
+  ]);
+
+  let bar = g.selectAll(".events")
+      .data(facebookData)
+    .enter().append("g")
+      .attr("transform", (d, i) => ("translate(" + i * barWidth + "," + 0 + ")"))
+      .attr("class", "bar facebook")
+      .on('mouseover',function() {
+        d3.select(this)
+          .select('text')
+          .attr('display', 'inline');
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .select('text')
+          .attr('display', 'none');
+      });
+
+  bar.append("rect")
+    .attr('class', 'interested')
+    .attr('x', 0)
+    .attr("y", bounds.height/2)
+    .attr("height", d => (y(d.interested_count) - (bounds.height/2)))
+    .attr("width", barWidth/2 - 1);
+
+  bar.append("rect")
+    .attr('class', 'attending')
+    .attr('x', barWidth/2)
+    .attr("y", bounds.height/2)
+    .attr("height", d => (y(d.attending_count) - (bounds.height/2)))
+    .attr("width", barWidth/2 - 1);
+
+
+  addTextFacebookBarChart(bar, bounds);
+  addFacebookAxis(g, y);
+}
+
 // Functions that adds the barchart for then
 // membersPerDay data
 function membersBarChart() {
+  console.log(facebookData);
   let bounds = getBounds();
   let g = addNewSVG(bounds);
 
-  let y = d3.scale.linear()
-    .range([(bounds.height/2), 0]);
-
-  y.domain([0, d3.max(membersPerDay, d => d.membersJoined )]);
   let barWidth = bounds.width / membersPerDay.length;
-  addMembersBars(bounds, g, y, barWidth);
-  //addEventsBars(bounds, g, y, barWidth);
+  addMembersBars(bounds, g, barWidth);
+  addEventsBars(bounds, g, barWidth);
+
 }

@@ -34,6 +34,26 @@ html, body {
   shape-rendering: crispEdges;
 }
 
+.bar {
+  fill: #171C44;
+}
+
 .bar:hover {
+  fill: gray;
+}
+
+.interested {
+  fill: #8b9dc3;
+}
+
+.attending {
+  fill: #3b5998;
+}
+
+.interested:hover {
+  fill: gray;
+}
+
+.attending:hover {
   fill: gray;
 }
