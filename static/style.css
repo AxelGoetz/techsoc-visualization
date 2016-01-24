@@ -1,0 +1,19 @@
+.header {
+  margin: 0 auto;
+  width: 50%;
+  height: 50px;
+  border: 2px solid black;
+  border-radius: 20px;
+}
+
+.header ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header ul li {
+  padding: 0px 10px;
+}
