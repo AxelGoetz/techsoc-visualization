@@ -100,15 +100,14 @@ function sortFacebook(a, b) {
 }
 
 // Checks if facebook event is too old or new
-function tooOldOrNew(date) {
-  let oldestTicket = new Date(membersPerDay[0].key);
-  let newestTicket = new Date(membersPerDay[membersPerDay.length - 1].key);
-  date = date.getTime();
+function filterOldandNewEvents() {
+  let oldestTicket = new Date(membersPerDay[0].key).getTime();
+  let newestTicket = new Date(membersPerDay[membersPerDay.length - 1].key).getTime();
 
-  if((date < oldestTicket.getTime()) || (date > newestTicket.getTime())) {
-    return true;
-  }
-  return false;
+  facebookData = _.filter(facebookData, (d) => {
+    let date = new Date(d.start_time).getTime();
+    return !((date < oldestTicket) || (date > newestTicket));
+  });
 }
 
 // Adds the missing days before the first event
@@ -127,16 +126,12 @@ function addMissingDaysFirstEvent() {
 // Also removes very old events and events in the fuuuuutureeee
 function addMissingDaysFacebook() {
   facebookData.sort(sortFacebook);
-  let length = facebookData.length - 1;
+  filterOldandNewEvents();
 
+  let length = facebookData.length - 1;
   for(let i = 0; i < length; i++) {
     facebookData[i].start_time = new Date(facebookData[i].start_time);
     facebookData[i].start_time.setHours(1);
-    if(tooOldOrNew(facebookData[i].start_time)) {
-      facebookData.splice(i, 1);
-      length--; i--;
-      continue;
-    }
     let nextDay = new Date(facebookData[i].start_time);
     nextDay.setDate(facebookData[i].start_time.getDate() + 1);
 
@@ -512,6 +507,7 @@ function drawCircles(g, bounds, y, linex) {
   let circles = g.selectAll("g")
     .data(membersPerDay)
   .enter().append("g")
+    .attr('class', 'bar')
     .attr("transform", (d, i) => {
       currentTotal += d.membersJoined;
       return "translate(" + linex*i + "," + y(currentTotal) + ")";
