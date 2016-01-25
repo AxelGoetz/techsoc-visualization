@@ -34,7 +34,3 @@ node_modules
 
 # Transpiled javascript files
 dist/*
-
-# Techsoc members data
-data/members.csv
-

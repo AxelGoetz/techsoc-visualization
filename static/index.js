@@ -18,11 +18,8 @@ function extractData(dataPoint) {
   let msec = Date.parse(dataPoint['Order date'].slice(0, 10));
   let d = new Date(msec);
 
-  let year = dataPoint['User email'].split('.')[2].slice(0, 2);
-  year = parseInt(year);
-  if(!isNaN(year)) {
-    memberData.push({date: d, year: parseInt(year)});
-  }
+  let year = parseInt(dataPoint.Year);
+  memberData.push({date: d, year: parseInt(year)});
 }
 
 function sortMembersPerDay(a, b) {
@@ -69,7 +66,6 @@ function getMembersPerDay() {
     });
     e.membersJoined = membersJoined;
   });
-
   addMissingDays();
 }
 
@@ -138,7 +134,13 @@ function addMissingDaysFacebook() {
     let nextDayObject = new Date(facebookData[i + 1].start_time);
     nextDayObject.setHours(1);
     if(facebookData[i].start_time.getTime() == nextDayObject.getTime()) {
-      facebookData.splice(i, 1);
+      let amountPeople1 = facebookData[i].attending_count + facebookData[i].interested_count;
+      let amountPeople2 = facebookData[i + 1].attending_count + facebookData[i + 1].interested_count;
+      if(amountPeople1 > amountPeople2) {
+        facebookData.splice(i, 1);
+      } else {
+        facebookData.splice(i + 1, 1);
+      }
       length--; i--;
     } else if(nextDay.getTime() != nextDayObject.getTime()) {
       let tempObj = {start_time: nextDay, id: "", attending_count: 0, interested_count: 0, name: ""};
@@ -584,7 +586,6 @@ function drawYearBarChart(g, bounds, barWidth, y) {
 function membersPerYearBarChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
-  console.log(membersPerYear);
 
   let y = d3.scale.linear()
     .range([bounds.height, 0]);
