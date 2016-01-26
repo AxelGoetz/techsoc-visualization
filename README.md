@@ -15,7 +15,7 @@ npm install -g grunt-cli
 
 Then run the following command to listen for changes in the javascript file.
 ```
-grunt
+grunt build
 ```
 
 To serve the directory, make sure that you have pip installed and then run:
