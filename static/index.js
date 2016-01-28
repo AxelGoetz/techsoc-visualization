@@ -655,6 +655,25 @@ function membersPerYearBarChart() {
 // Events visualization over time
 //----------------------------------------------------------
 
+// This gets an json object, containing either all of the
+// people that are attending an event on facebook
+// or that are interested in an event, depending on the url string
+function getEventAttendees(event, URLString) {
+  axios.get("https://graph.facebook.com/v2.5/" + event.facebook_id + '/' + URLString, {
+    params: {
+      access_token: ACCESS_TOKEN,
+      json: true
+    }
+  })
+  .then(function(response) {
+    event[URLString] = response.data.data;
+  })
+  .catch((response) => {
+    event = null;
+  });
+
+}
+
 // Gets the number of attendees for a particular facebook event
 function getFacebookAttendees(event) {
   if(event.facebook_id === undefined) {
@@ -674,6 +693,8 @@ function getFacebookAttendees(event) {
       let facebookData = response.data;
       event.interested_count = facebookData.interested_count;
       event.attending_count = facebookData.attending_count;
+      getEventAttendees(event, 'attending');
+      getEventAttendees(event, 'interested');
     })
     .catch((response) => {
       event = null;
@@ -681,12 +702,61 @@ function getFacebookAttendees(event) {
   }
 }
 
+function addTextEventsBarChart(bar, bounds) {
+  let text = bar.append("text")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr('transform', 'translate(' + -100 + ", " + 0 + ")")
+    .attr("display", "none");
+
+  text.append('tspan')
+      .attr('x', 0)
+      .attr('dy', '1.2em')
+      .text((d) => {
+        if(d.label !== undefined) {
+          let text = "";
+          text = d.label;
+          if(d.title !== undefined) { text += (" - " + d.title); }
+          return text;
+        }
+        else {
+          return d.title;
+        }
+      });
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => (d.start_time.slice(0, 10)));
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => ("Attending: " + d.attending_count));
+
+  text.append('tspan')
+    .attr('x', 0)
+    .attr('dy', '1.2em')
+    .text(d => ("Interested: " + d.interested_count));
+}
+
+// Function responsible for drawing the bars
 function drawEventsBarChart(g, bounds, barWidth, y) {
   let bar = g.selectAll("g")
       .data(eventsData)
     .enter().append("g")
       .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
-      .attr("class", "bar event");
+      .attr("class", "bar event")
+      .on('mouseover',function() {
+        d3.select(this)
+          .select('text')
+          .attr('display', 'inline');
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .select('text')
+          .attr('display', 'none');
+      });
 
   bar.append("rect")
     .attr("class", "attending")
@@ -699,19 +769,23 @@ function drawEventsBarChart(g, bounds, barWidth, y) {
     .attr("width", barWidth - 1)
     .attr("y", d => (y(d.interested_count) - (bounds.height - y(d.attending_count))))
     .attr("height", d => (bounds.height - y(d.interested_count)));
+
+  addTextEventsBarChart(bar, bounds);
 }
 
 
+// This is the main function for the events data
 function eventsBarChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
   eventsData = _.filter(eventsData, d => ((d !== null) && (d.attending_count !== undefined) &&
     (d.facebook_id !== undefined) && (d.interested_count !== undefined)));
 
+  console.log(eventsData);
   let y = d3.scale.linear()
     .range([bounds.height, 0]);
   y.domain([0, d3.max(eventsData, d => (d.attending_count + d.interested_count))]);
-  let barWidth = 20;
+  let barWidth = bounds.width/eventsData.length;
 
   drawEventsBarChart(g, bounds, barWidth, y);
   addAxisCumulativeChart(g, bounds, y, "Attendees");
