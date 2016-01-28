@@ -6,7 +6,12 @@ import axios from "axios";
 let memberData = [];
 let membersPerDay = [];
 let membersPerYear = [];
+let eventsData = [];
 let facebookData = [];
+
+// Facebook access token
+let ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
+
 
 // Extracting Data
 // ----------------------------------------------------------
@@ -81,7 +86,6 @@ function getMembersPerYear() {
 
 // Get facebook event data
 // ----------------------------------------------------------
-let ACCESS_TOKEN = "CAAK3kpvZBViIBAAs9SZBVlLXDnQzO8bZAvwjiB7UdzBuKPJsSqiSiYoND0ct8GQsmcGmBD5Y8pCTptMSNTNp9OflfyBLZBq0ijGoLZCbJifZCNcTtQjHh2MkdlW7fmOgFPymnrSIQpVOmz1cQA7TIwzUwzVzvcTtWkOag9OXQvVZC2jMKGU1gUW3fQQWPOZCLCoZD";
 
 // Replaces string with a date for facebook events
 function extractDate(dataPoint) {
@@ -553,32 +557,75 @@ function cumulativeLineChart() {
 // Members per year visualization
 // ----------------------------------------------------------
 
-// This function draws the bars
-function drawYearBarChart(g, bounds, barWidth, y) {
-  let bar = g.selectAll("g")
-      .data(membersPerYear)
-    .enter().append("g")
-      .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
-      .attr("class", "bar year");
+// // This function draws the bars
+// function drawYearBarChart(g, bounds, barWidth, y) {
+//   let bar = g.selectAll("g")
+//       .data(membersPerYear)
+//     .enter().append("g")
+//       .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
+//       .attr("class", "bar year");
+//
+//   bar.append("rect")
+//     .attr("width", barWidth - 1)
+//     .attr("y", d => y(d.values))
+//     .attr("height", d => (bounds.height - y(d.values)));
+//
+//   let text = bar.append("text")
+//     .attr("x", barWidth/3)
+//     .attr("y", (d) => (y(d.values) - 40));
+//
+//   text.append('tspan')
+//     .attr('x', barWidth/3)
+//     .attr('dy', '1.2em')
+//     .text((d) => ('20' + d.key));
+//
+//   text.append('tspan')
+//     .attr('x', barWidth/4)
+//     .attr('dy', '1.2em')
+//     .text((d) => ('Total: ' + d.values));
+// }
 
-  bar.append("rect")
-    .attr("width", barWidth - 1)
-    .attr("y", d => y(d.values))
-    .attr("height", d => (bounds.height - y(d.values)));
-
-  let text = bar.append("text")
-    .attr("x", barWidth/3)
-    .attr("y", (d) => (y(d.values) - 40));
+function addTextYearPieChart(chart, labelArc, radius) {
+  let text = chart.append("text")
+    .attr("transform", d => ("translate(" + labelArc.centroid(d) + ")"));
 
   text.append('tspan')
-    .attr('x', barWidth/3)
+    .attr('x', 0)
     .attr('dy', '1.2em')
-    .text((d) => ('20' + d.key));
+    .text((d) => ('20' + d.data.key));
 
   text.append('tspan')
-    .attr('x', barWidth/4)
+    .attr('x', 0)
     .attr('dy', '1.2em')
-    .text((d) => ('Total: ' + d.values));
+    .text((d) => ('Total: ' + d.data.values));
+}
+
+function drawYearPieChart(g, bounds) {
+  let radius = d3.min([bounds.width, bounds.height])/2;
+  let color = d3.scale.category10();
+
+  let arc = d3.svg.arc()
+    .outerRadius(radius - 10)
+    .innerRadius(0);
+
+  let labelArc = d3.svg.arc()
+    .outerRadius(radius - 100)
+    .innerRadius(radius - 100);
+
+  let pie = d3.layout.pie()
+    .sort(null)
+    .value(d =>  d.values);
+
+  let chart = g.selectAll(".arc")
+    .data(pie(membersPerYear))
+  .enter().append("g")
+    .attr("class", "arc");
+
+  chart.append("path")
+    .attr("d", arc)
+    .style("fill", (d) => color(d.data.key));
+
+  addTextYearPieChart(chart, labelArc, radius);
 }
 
 // Main function for the members organized
@@ -586,14 +633,62 @@ function drawYearBarChart(g, bounds, barWidth, y) {
 function membersPerYearBarChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
+  g.attr('transform', 'translate(' + bounds.width/2 + ',' + bounds.height/2 + ')');
+  drawYearPieChart(g, bounds);
+  // let y = d3.scale.linear()
+  //   .range([bounds.height, 0]);
+  // y.domain([0, d3.max(membersPerYear, d => d.values)]);
+  // let barWidth = bounds.width / membersPerYear.length;
+
+  // drawYearBarChart(g, bounds, barWidth, y);
+  // addAxisCumulativeChart(g, bounds, y);
+}
+
+// Events visualization over time
+//----------------------------------------------------------
+
+// Gets the number of attendees for a particular facebook event
+function getFacebookAttendees(event) {
+  if(event.facebook_id === undefined) {
+    event = null;
+  } else {
+    axios.get("https://graph.facebook.com/v2.5/" + event.facebook_id, {
+      params: {
+        access_token: ACCESS_TOKEN,
+        fields: [
+          "attending_count",
+          "interested_count"
+        ].join(","),
+        json: true
+      }
+    })
+    .then(function(response) {
+      let facebookData = response.data;
+      event.interested_count = facebookData.interested_count;
+      event.attending_count = facebookData.attending_count;
+    })
+    .catch((response) => {
+      event = null;
+    });
+  }
+}
+
+// Gets all of the events data from UCLUTechsoc
+d3.json('http://uclutech.com/data/events.json', (error, data) => {
+  _.map(data, getFacebookAttendees);
+  _.filter(data, d => (d !== null));
+  eventsData = data;
+  console.log(eventsData);
+});
+
+function eventsBarChart() {
+  let bounds = getBounds();
+  let g = addNewSVG(bounds);
 
   let y = d3.scale.linear()
     .range([bounds.height, 0]);
-  y.domain([0, d3.max(membersPerYear, d => d.values)]);
-  let barWidth = bounds.width / membersPerYear.length;
-
-  drawYearBarChart(g, bounds, barWidth, y);
-  addAxisCumulativeChart(g, bounds, y);
+  y.domain([0, d3.max(eventsData, d => (d.attending_count + d.interested_count))]);
+  let barWidth = 20;
 }
 
 // Adding Event Listeners
@@ -601,7 +696,9 @@ function membersPerYearBarChart() {
 let id1 = document.getElementById('function1');
 let id2 = document.getElementById('function2');
 let id3 = document.getElementById('function3');
+let id4 = document.getElementById('function4');
 
 id1.addEventListener("click", membersBarChart);
 id2.addEventListener("click", cumulativeLineChart);
 id3.addEventListener("click", membersPerYearBarChart);
+id4.addEventListener("click", eventsBarChart);
