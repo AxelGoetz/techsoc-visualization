@@ -192,6 +192,13 @@ d3.csv('./data/members.csv', (error, data) => {
   getFacebookEvents();
 });
 
+// Gets all of the events data from UCLUTechsoc
+d3.json('http://uclutech.com/data/events.json', (error, data) => {
+  data = _.filter(data, d => (d.facebook_id !== undefined));
+  _.map(data, getFacebookAttendees);
+  eventsData = data;
+});
+
 // Visualization helper functions
 // ----------------------------------------------------------
 
@@ -433,7 +440,7 @@ function totalMembers() {
 }
 
 // Add the axis for the cumulative graph
-function addAxisCumulativeChart(g, bounds, y) {
+function addAxisCumulativeChart(g, bounds, y, text) {
   let x = d3.scale.ordinal()
     .rangeRoundBands([0, bounds.width], 0.1);
 
@@ -458,7 +465,7 @@ function addAxisCumulativeChart(g, bounds, y) {
       .attr("y", 6)
       .attr("dy", ".71em")
       .style("text-anchor", "end")
-      .text("Members");
+      .text(text);
 }
 
 // Adds the text information to the circle
@@ -551,12 +558,13 @@ function cumulativeLineChart() {
   drawLines(g, bounds, y, linex);
   drawCircles(g, bounds, y, linex);
 
-  addAxisCumulativeChart(g, bounds, y);
+  addAxisCumulativeChart(g, bounds, y, "Members");
 }
 
 // Members per year visualization
 // ----------------------------------------------------------
 
+// Used for drawing a bar chart for the year, replaced by piechart
 // // This function draws the bars
 // function drawYearBarChart(g, bounds, barWidth, y) {
 //   let bar = g.selectAll("g")
@@ -673,22 +681,40 @@ function getFacebookAttendees(event) {
   }
 }
 
-// Gets all of the events data from UCLUTechsoc
-d3.json('http://uclutech.com/data/events.json', (error, data) => {
-  _.map(data, getFacebookAttendees);
-  _.filter(data, d => (d !== null));
-  eventsData = data;
-  console.log(eventsData);
-});
+function drawEventsBarChart(g, bounds, barWidth, y) {
+  let bar = g.selectAll("g")
+      .data(eventsData)
+    .enter().append("g")
+      .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
+      .attr("class", "bar event");
+
+  bar.append("rect")
+    .attr("class", "attending")
+    .attr("width", barWidth - 1)
+    .attr("y", (d, i) => (y(d.attending_count)))
+    .attr("height", d => (bounds.height - y(d.attending_count)));
+
+  bar.append("rect")
+    .attr("class", "interested")
+    .attr("width", barWidth - 1)
+    .attr("y", d => (y(d.interested_count) - (bounds.height - y(d.attending_count))))
+    .attr("height", d => (bounds.height - y(d.interested_count)));
+}
+
 
 function eventsBarChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
+  eventsData = _.filter(eventsData, d => ((d !== null) && (d.attending_count !== undefined) &&
+    (d.facebook_id !== undefined) && (d.interested_count !== undefined)));
 
   let y = d3.scale.linear()
     .range([bounds.height, 0]);
   y.domain([0, d3.max(eventsData, d => (d.attending_count + d.interested_count))]);
   let barWidth = 20;
+
+  drawEventsBarChart(g, bounds, barWidth, y);
+  addAxisCumulativeChart(g, bounds, y, "Attendees");
 }
 
 // Adding Event Listeners
