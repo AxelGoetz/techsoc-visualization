@@ -564,92 +564,91 @@ function cumulativeLineChart() {
 // Members per year visualization
 // ----------------------------------------------------------
 
-// Used for drawing a bar chart for the year, replaced by piechart
-// // This function draws the bars
-// function drawYearBarChart(g, bounds, barWidth, y) {
-//   let bar = g.selectAll("g")
-//       .data(membersPerYear)
-//     .enter().append("g")
-//       .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
-//       .attr("class", "bar year");
-//
-//   bar.append("rect")
-//     .attr("width", barWidth - 1)
-//     .attr("y", d => y(d.values))
-//     .attr("height", d => (bounds.height - y(d.values)));
-//
-//   let text = bar.append("text")
-//     .attr("x", barWidth/3)
-//     .attr("y", (d) => (y(d.values) - 40));
+// This function draws the bars
+function drawYearBarChart(g, bounds, barWidth, y) {
+  let bar = g.selectAll("g")
+      .data(membersPerYear)
+    .enter().append("g")
+      .attr("transform", (d, i) => ("translate(" + i * barWidth + ",0)"))
+      .attr("class", "bar year");
+
+  bar.append("rect")
+    .attr("width", barWidth - 1)
+    .attr("y", d => y(d.values))
+    .attr("height", d => (bounds.height - y(d.values)));
+
+  let text = bar.append("text")
+    .attr("x", barWidth/3)
+    .attr("y", (d) => (y(d.values) - 40));
+
+  text.append('tspan')
+    .attr('x', barWidth/3)
+    .attr('dy', '1.2em')
+    .text((d) => ('20' + d.key));
+
+  text.append('tspan')
+    .attr('x', barWidth/4)
+    .attr('dy', '1.2em')
+    .text((d) => ('Total: ' + d.values));
+}
+
+// function addTextYearPieChart(chart, labelArc, radius) {
+//   let text = chart.append("text")
+//     .attr("transform", d => ("translate(" + labelArc.centroid(d) + ")"));
 //
 //   text.append('tspan')
-//     .attr('x', barWidth/3)
+//     .attr('x', 0)
 //     .attr('dy', '1.2em')
-//     .text((d) => ('20' + d.key));
+//     .text((d) => ('20' + d.data.key));
 //
 //   text.append('tspan')
-//     .attr('x', barWidth/4)
+//     .attr('x', 0)
 //     .attr('dy', '1.2em')
-//     .text((d) => ('Total: ' + d.values));
+//     .text((d) => ('Total: ' + d.data.values));
 // }
 
-function addTextYearPieChart(chart, labelArc, radius) {
-  let text = chart.append("text")
-    .attr("transform", d => ("translate(" + labelArc.centroid(d) + ")"));
-
-  text.append('tspan')
-    .attr('x', 0)
-    .attr('dy', '1.2em')
-    .text((d) => ('20' + d.data.key));
-
-  text.append('tspan')
-    .attr('x', 0)
-    .attr('dy', '1.2em')
-    .text((d) => ('Total: ' + d.data.values));
-}
-
-function drawYearPieChart(g, bounds) {
-  let radius = d3.min([bounds.width, bounds.height])/2;
-  let color = d3.scale.category10();
-
-  let arc = d3.svg.arc()
-    .outerRadius(radius - 10)
-    .innerRadius(0);
-
-  let labelArc = d3.svg.arc()
-    .outerRadius(radius - 100)
-    .innerRadius(radius - 100);
-
-  let pie = d3.layout.pie()
-    .sort(null)
-    .value(d =>  d.values);
-
-  let chart = g.selectAll(".arc")
-    .data(pie(membersPerYear))
-  .enter().append("g")
-    .attr("class", "arc");
-
-  chart.append("path")
-    .attr("d", arc)
-    .style("fill", (d) => color(d.data.key));
-
-  addTextYearPieChart(chart, labelArc, radius);
-}
+// function drawYearPieChart(g, bounds) {
+//   let radius = d3.min([bounds.width, bounds.height])/2;
+//   let color = d3.scale.category10();
+//
+//   let arc = d3.svg.arc()
+//     .outerRadius(radius - 10)
+//     .innerRadius(0);
+//
+//   let labelArc = d3.svg.arc()
+//     .outerRadius(radius - 100)
+//     .innerRadius(radius - 100);
+//
+//   let pie = d3.layout.pie()
+//     .sort(null)
+//     .value(d =>  d.values);
+//
+//   let chart = g.selectAll(".arc")
+//     .data(pie(membersPerYear))
+//   .enter().append("g")
+//     .attr("class", "arc");
+//
+//   chart.append("path")
+//     .attr("d", arc)
+//     .style("fill", (d) => color(d.data.key));
+//
+//   addTextYearPieChart(chart, labelArc, radius);
+// }
 
 // Main function for the members organized
 // per year bar chart
 function membersPerYearBarChart() {
   let bounds = getBounds();
   let g = addNewSVG(bounds);
-  g.attr('transform', 'translate(' + bounds.width/2 + ',' + bounds.height/2 + ')');
-  drawYearPieChart(g, bounds);
-  // let y = d3.scale.linear()
-  //   .range([bounds.height, 0]);
-  // y.domain([0, d3.max(membersPerYear, d => d.values)]);
-  // let barWidth = bounds.width / membersPerYear.length;
+  // g.attr('transform', 'translate(' + bounds.width/2 + ',' + bounds.height/2 + ')');
+  // drawYearPieChart(g, bounds);
+  let y = d3.scale.linear()
+    .range([bounds.height, 0]);
+  y.domain([0, d3.max(membersPerYear, d => d.values)]);
+  let barWidth = bounds.width / membersPerYear.length;
 
-  // drawYearBarChart(g, bounds, barWidth, y);
-  // addAxisCumulativeChart(g, bounds, y);
+  drawYearBarChart(g, bounds, barWidth, y);
+  addAxisCumulativeChart(g, bounds, y);
 }
 
 // Events visualization over time
