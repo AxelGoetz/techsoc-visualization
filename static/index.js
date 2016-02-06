@@ -797,7 +797,21 @@ let id2 = document.getElementById('function2');
 let id3 = document.getElementById('function3');
 let id4 = document.getElementById('function4');
 
-id1.addEventListener("click", membersBarChart);
-id2.addEventListener("click", cumulativeLineChart);
-id3.addEventListener("click", membersPerYearBarChart);
-id4.addEventListener("click", eventsBarChart);
+id1.addEventListener("click", () => {
+  membersBarChart();
+  window.onresize = membersBarChart;
+});
+id2.addEventListener("click", () => {
+  cumulativeLineChart();
+  window.onresize = cumulativeLineChart;
+});
+id3.addEventListener("click", () => {
+  membersPerYearBarChart();
+  window.onresize = membersPerYearBarChart;
+});
+id4.addEventListener("click", () => {
+  eventsBarChart();
+  window.onresize = eventsBarChart;
+});
+
+window.onresize = membersBarChart;
