@@ -25742,11 +25742,8 @@ function eventsBarChart() {
 // Random facts
 // ----------------------------------------------------------
 function addNewDiv() {
-  try {
-    _d32["default"].select('svg').remove();
-  } catch (err) {
-    _d32["default"].select('.info').remove();
-  }
+  _d32["default"].select('svg').remove();
+  _d32["default"].select('.info').remove();
   var body = _d32["default"].select('body');
   var div = body.append('div').attr('class', 'info').style('padding-left', '20px');
 
