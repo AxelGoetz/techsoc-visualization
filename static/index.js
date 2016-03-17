@@ -205,6 +205,7 @@ d3.json('http://uclutech.com/data/events.json', (error, data) => {
 // Removes any old svg's and then adds a new one
 function addNewSVG(bounds) {
   d3.select('svg').remove();
+  d3.select('.info').remove();
   let body = d3.select('body');
   let svg = body.append('svg');
 
@@ -790,12 +791,271 @@ function eventsBarChart() {
   addAxisCumulativeChart(g, bounds, y, "Attendees");
 }
 
+// Random facts
+// ----------------------------------------------------------
+function addNewDiv() {
+  try {
+      d3.select('svg').remove();
+  } catch(err) {
+    d3.select('.info').remove();
+  }
+  let body = d3.select('body');
+  let div = body.append('div')
+    .attr('class', 'info')
+    .style('padding-left', '20px');
+
+  return div;
+}
+
+
+function rankings(allNames, div) {
+  let rankings = [];
+  for(var i = 0; i < allNames.length; i++) {
+    let attending = getEventsAttended(allNames[i], 'attending', eventsData).length;
+    let interested = getEventsAttended(allNames[i], 'interested', eventsData).length;
+    let events = attending + interested;
+    rankings.push({'name': allNames[i], 'events': events});
+  }
+  rankings.sort((a, b) => b.events - a.events);
+
+  let rdiv = div.append('div')
+    .attr('class', 'rankingsresult');
+
+  let j = 0;
+
+  rdiv.selectAll('p')
+    .data(rankings)
+    .enter()
+    .append('p')
+    .text(d => {
+      j += 1;
+      let string = j + ': ' + d.name;
+      string += ' (' + d.events + ')';
+      return string;
+    });
+}
+
+function removeRankings(e) {
+  d3.select('.rankingsresult').remove();
+  e.target.removeEventListener(e.type, removeRankings, false);
+  let rankingsbutton = document.getElementById('rankingsbutton');
+  rankingsbutton.innerHTML = 'Display Rankings';
+  rankingsbutton.addEventListener('click', displayRankings);
+}
+
+function displayRankings(e) {
+  d3.select('.rankingsresult').remove();
+  let div = d3.select('.rankings');
+  let interested = getUniqueMembers(eventsData, 'interested');
+  let attending = getUniqueMembers(eventsData, 'attending');
+  Array.prototype.push.apply(interested, attending);
+  let uniqueNames = _.uniq(interested);
+  rankings(uniqueNames, div);
+
+  e.target.removeEventListener(e.type, displayRankings, false);
+  let rankingsbutton = document.getElementById('rankingsbutton');
+  rankingsbutton.innerHTML = "Do not display rankings";
+  rankingsbutton.addEventListener('click', removeRankings);
+}
+
+// Gets all of the events a particular person attended
+function getEventsAttended(name, key, array) {
+  let events = [];
+  for(let i = 0; i < array.length; i++) {
+    try {
+      for(let j = 0; j < array[i][key].length; j++) {
+        if(array[i][key][j].name == name) {
+          events.push(array[i]);
+          break;
+        }
+      }
+    } catch(err) {} // Do nothing
+  }
+  return events;
+}
+
+// Gets all of the names of the people
+// that went to the same event as you
+function getFriendNames(array) {
+  let names = getUniqueMembers(array, 'attending');
+  let temp = getUniqueMembers(array, 'interested');
+  Array.prototype.push.apply(names, temp);
+  return names;
+}
+
+// Calculates to how many events each name went
+function getFriendRankings(allNames, attending, interested) {
+  let rankings = [];
+  for(let i = 0; i < allNames.length; i++) {
+    let count = getEventsAttended(allNames[i], 'attending', attending).length;
+    count += getEventsAttended(allNames[i], 'interested', attending).length;
+    count += getEventsAttended(allNames[i], 'attending', interested).length;
+    count += getEventsAttended(allNames[i], 'interested', interested).length;
+    rankings.push({'name': allNames[i], 'events': count});
+  }
+  rankings.sort((a, b) => b.events - a.events);
+  return rankings;
+}
+
+// Finds your best friend by finding the person
+// who went to the same events
+function findBestFriend(name, attending, interested) {
+  let allNames = getFriendNames(attending);
+  Array.prototype.push.apply(allNames, getFriendNames(interested));
+  allNames = _.uniq(allNames);
+  allNames.sort();
+
+  let rankings = getFriendRankings(allNames, attending, interested);
+
+  if(rankings.length > 0 && rankings[0].name == name) { // We don't want the same person
+    return rankings[1];
+  } else if(rankings.length > 1){
+    return rankings[0];
+  }
+  return null;
+}
+
+// Displays whoever your best friend is
+function displayBestFriend(personInfo, name, attending, interested) {
+  let ranking = findBestFriend(name, attending, interested);
+  if(ranking !== null) {
+    personInfo.append('p')
+      .text('Your best friend is ' + ranking.name);
+  } else {
+    personInfo.append('p')
+      .text(':(');
+  }
+}
+
+// Adds the text with the events a person
+// went to
+function addEventsCount(name, attending, interested) {
+  let info = d3.select('.searching');
+  info.select('.personInfo').remove();
+
+  let personInfo = info.append('div')
+    .attr('class', 'personInfo');
+
+  personInfo.append('h1')
+    .text(name);
+
+  displayBestFriend(personInfo, name, attending, interested);
+}
+
+// Displays all the events a person went to
+// where title is either interested or attended
+// and the array are the events a person was
+// interested in or attended
+function displayEvents(title, array) {
+  let div = d3.select('.personInfo');
+  div.append('h2')
+    .text(title + ' (' + array.length + ')');
+
+  div.selectAll('.event')
+    .data(array)
+    .enter()
+    .append('p')
+      .text(d => {
+        if(d.label !== undefined) {
+          return d.label + ' - ' + d.title;
+        } else {
+          return d.title;
+        }
+      })
+      .attr('class', '.event');
+}
+
+// Searches all the events a person went to
+// and displays it
+function searchPerson() {
+  let name = document.getElementById('personinput').value;
+
+  let attending = getEventsAttended(name, 'attending', eventsData);
+  let interested = getEventsAttended(name, 'interested', eventsData);
+
+  addEventsCount(name, attending, interested);
+
+  displayEvents("Attending", attending);
+  displayEvents("Interested", interested);
+
+  return false;
+}
+
+// Gets the unique members from the events
+// in the array
+// the key is either attending or interested
+function getUniqueMembers(array, key) {
+  let people = [];
+  for(let i = 0; i < array.length; i++) {
+    try {
+      for(let j = 0; j < array[i][key].length; j++) {
+        people.push(array[i].attending[j].name);
+      }
+
+    } catch(err) {} // Do nothing
+  }
+  people = _.uniq(people);
+  people.sort();
+  return people;
+}
+
+function addTextCoolFacts(div, newElem) {
+  div.selectAll('p')
+    .data(newElem)
+    .enter()
+    .append('p')
+    .text((d) => d);
+}
+
+function addSearchBar(div) {
+  let form = div.append("div")
+    .attr('class', 'searching')
+      .append('form')
+      .attr('onsubmit', 'return false;');
+
+  form.append('input')
+    .attr('id', 'personinput')
+    .attr('type', 'text')
+    .attr('name', 'name')
+    .attr('placeholder', 'Enter your name');
+
+  let button = form.append('input')
+    .attr('type', 'submit');
+
+  button.node().addEventListener('click', searchPerson);
+
+  let rankings = div.append('div')
+    .attr('class', 'rankings')
+      .append('button')
+      .attr('id', 'rankingsbutton')
+      .text('Display Rankings');
+
+  rankings.node().addEventListener('click', displayRankings);
+}
+
+function coolFacts() {
+  let div = addNewDiv();
+  let newElem = [];
+  newElem.push('We ran ' + eventsData.length + ' events this year');
+  newElem.push('We have ' + memberData.length + ' members');
+
+  let interested = getUniqueMembers(eventsData, 'interested');
+  let attending = getUniqueMembers(eventsData, 'attending');
+
+  newElem.push(attending.length + ' different people attended our events');
+  newElem.push(interested.length + ' different people were interested in our events');
+
+  addTextCoolFacts(div, newElem);
+  addSearchBar(div);
+}
+
 // Adding Event Listeners
 // ----------------------------------------------------------
 let id1 = document.getElementById('function1');
 let id2 = document.getElementById('function2');
 let id3 = document.getElementById('function3');
 let id4 = document.getElementById('function4');
+let id5 = document.getElementById('function5');
 
 id1.addEventListener("click", () => {
   membersBarChart();
@@ -812,6 +1072,10 @@ id3.addEventListener("click", () => {
 id4.addEventListener("click", () => {
   eventsBarChart();
   window.onresize = eventsBarChart;
+});
+id5.addEventListener("click", () => {
+  coolFacts();
+  window.onresize = null;
 });
 
 window.onresize = membersBarChart;

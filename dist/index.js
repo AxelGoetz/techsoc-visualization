@@ -25280,6 +25280,7 @@ _d32["default"].json('http://uclutech.com/data/events.json', function (error, da
 // Removes any old svg's and then adds a new one
 function addNewSVG(bounds) {
   _d32["default"].select('svg').remove();
+  _d32["default"].select('.info').remove();
   var body = _d32["default"].select('body');
   var svg = body.append('svg');
 
@@ -25738,12 +25739,243 @@ function eventsBarChart() {
   addAxisCumulativeChart(g, bounds, y, "Attendees");
 }
 
+// Random facts
+// ----------------------------------------------------------
+function addNewDiv() {
+  try {
+    _d32["default"].select('svg').remove();
+  } catch (err) {
+    _d32["default"].select('.info').remove();
+  }
+  var body = _d32["default"].select('body');
+  var div = body.append('div').attr('class', 'info').style('padding-left', '20px');
+
+  return div;
+}
+
+function rankings(allNames, div) {
+  var rankings = [];
+  for (var i = 0; i < allNames.length; i++) {
+    var attending = getEventsAttended(allNames[i], 'attending', eventsData).length;
+    var interested = getEventsAttended(allNames[i], 'interested', eventsData).length;
+    var events = attending + interested;
+    rankings.push({ 'name': allNames[i], 'events': events });
+  }
+  rankings.sort(function (a, b) {
+    return b.events - a.events;
+  });
+
+  var rdiv = div.append('div').attr('class', 'rankingsresult');
+
+  var j = 0;
+
+  rdiv.selectAll('p').data(rankings).enter().append('p').text(function (d) {
+    j += 1;
+    var string = j + ': ' + d.name;
+    string += ' (' + d.events + ')';
+    return string;
+  });
+}
+
+function removeRankings(e) {
+  _d32["default"].select('.rankingsresult').remove();
+  e.target.removeEventListener(e.type, removeRankings, false);
+  var rankingsbutton = document.getElementById('rankingsbutton');
+  rankingsbutton.innerHTML = 'Display Rankings';
+  rankingsbutton.addEventListener('click', displayRankings);
+}
+
+function displayRankings(e) {
+  _d32["default"].select('.rankingsresult').remove();
+  var div = _d32["default"].select('.rankings');
+  var interested = getUniqueMembers(eventsData, 'interested');
+  var attending = getUniqueMembers(eventsData, 'attending');
+  Array.prototype.push.apply(interested, attending);
+  var uniqueNames = _lodash2["default"].uniq(interested);
+  rankings(uniqueNames, div);
+
+  e.target.removeEventListener(e.type, displayRankings, false);
+  var rankingsbutton = document.getElementById('rankingsbutton');
+  rankingsbutton.innerHTML = "Do not display rankings";
+  rankingsbutton.addEventListener('click', removeRankings);
+}
+
+// Gets all of the events a particular person attended
+function getEventsAttended(name, key, array) {
+  var events = [];
+  for (var i = 0; i < array.length; i++) {
+    try {
+      for (var j = 0; j < array[i][key].length; j++) {
+        if (array[i][key][j].name == name) {
+          events.push(array[i]);
+          break;
+        }
+      }
+    } catch (err) {} // Do nothing
+  }
+  return events;
+}
+
+// Gets all of the names of the people
+// that went to the same event as you
+function getFriendNames(array) {
+  var names = getUniqueMembers(array, 'attending');
+  var temp = getUniqueMembers(array, 'interested');
+  Array.prototype.push.apply(names, temp);
+  return names;
+}
+
+// Calculates to how many events each name went
+function getFriendRankings(allNames, attending, interested) {
+  var rankings = [];
+  for (var i = 0; i < allNames.length; i++) {
+    var count = getEventsAttended(allNames[i], 'attending', attending).length;
+    count += getEventsAttended(allNames[i], 'interested', attending).length;
+    count += getEventsAttended(allNames[i], 'attending', interested).length;
+    count += getEventsAttended(allNames[i], 'interested', interested).length;
+    rankings.push({ 'name': allNames[i], 'events': count });
+  }
+  rankings.sort(function (a, b) {
+    return b.events - a.events;
+  });
+  return rankings;
+}
+
+// Finds your best friend by finding the person
+// who went to the same events
+function findBestFriend(name, attending, interested) {
+  var allNames = getFriendNames(attending);
+  Array.prototype.push.apply(allNames, getFriendNames(interested));
+  allNames = _lodash2["default"].uniq(allNames);
+  allNames.sort();
+
+  var rankings = getFriendRankings(allNames, attending, interested);
+
+  if (rankings.length > 0 && rankings[0].name == name) {
+    // We don't want the same person
+    return rankings[1];
+  } else if (rankings.length > 1) {
+    return rankings[0];
+  }
+  return null;
+}
+
+// Displays whoever your best friend is
+function displayBestFriend(personInfo, name, attending, interested) {
+  var ranking = findBestFriend(name, attending, interested);
+  if (ranking !== null) {
+    personInfo.append('p').text('Your best friend is ' + ranking.name);
+  } else {
+    personInfo.append('p').text(':(');
+  }
+}
+
+// Adds the text with the events a person
+// went to
+function addEventsCount(name, attending, interested) {
+  var info = _d32["default"].select('.searching');
+  info.select('.personInfo').remove();
+
+  var personInfo = info.append('div').attr('class', 'personInfo');
+
+  personInfo.append('h1').text(name);
+
+  displayBestFriend(personInfo, name, attending, interested);
+}
+
+// Displays all the events a person went to
+// where title is either interested or attended
+// and the array are the events a person was
+// interested in or attended
+function displayEvents(title, array) {
+  var div = _d32["default"].select('.personInfo');
+  div.append('h2').text(title + ' (' + array.length + ')');
+
+  div.selectAll('.event').data(array).enter().append('p').text(function (d) {
+    if (d.label !== undefined) {
+      return d.label + ' - ' + d.title;
+    } else {
+      return d.title;
+    }
+  }).attr('class', '.event');
+}
+
+// Searches all the events a person went to
+// and displays it
+function searchPerson() {
+  var name = document.getElementById('personinput').value;
+
+  var attending = getEventsAttended(name, 'attending', eventsData);
+  var interested = getEventsAttended(name, 'interested', eventsData);
+
+  addEventsCount(name, attending, interested);
+
+  displayEvents("Attending", attending);
+  displayEvents("Interested", interested);
+
+  return false;
+}
+
+// Gets the unique members from the events
+// in the array
+// the key is either attending or interested
+function getUniqueMembers(array, key) {
+  var people = [];
+  for (var i = 0; i < array.length; i++) {
+    try {
+      for (var j = 0; j < array[i][key].length; j++) {
+        people.push(array[i].attending[j].name);
+      }
+    } catch (err) {} // Do nothing
+  }
+  people = _lodash2["default"].uniq(people);
+  people.sort();
+  return people;
+}
+
+function addTextCoolFacts(div, newElem) {
+  div.selectAll('p').data(newElem).enter().append('p').text(function (d) {
+    return d;
+  });
+}
+
+function addSearchBar(div) {
+  var form = div.append("div").attr('class', 'searching').append('form').attr('onsubmit', 'return false;');
+
+  form.append('input').attr('id', 'personinput').attr('type', 'text').attr('name', 'name').attr('placeholder', 'Enter your name');
+
+  var button = form.append('input').attr('type', 'submit');
+
+  button.node().addEventListener('click', searchPerson);
+
+  var rankings = div.append('div').attr('class', 'rankings').append('button').attr('id', 'rankingsbutton').text('Display Rankings');
+
+  rankings.node().addEventListener('click', displayRankings);
+}
+
+function coolFacts() {
+  var div = addNewDiv();
+  var newElem = [];
+  newElem.push('We ran ' + eventsData.length + ' events this year');
+  newElem.push('We have ' + memberData.length + ' members');
+
+  var interested = getUniqueMembers(eventsData, 'interested');
+  var attending = getUniqueMembers(eventsData, 'attending');
+
+  newElem.push(attending.length + ' different people attended our events');
+  newElem.push(interested.length + ' different people were interested in our events');
+
+  addTextCoolFacts(div, newElem);
+  addSearchBar(div);
+}
+
 // Adding Event Listeners
 // ----------------------------------------------------------
 var id1 = document.getElementById('function1');
 var id2 = document.getElementById('function2');
 var id3 = document.getElementById('function3');
 var id4 = document.getElementById('function4');
+var id5 = document.getElementById('function5');
 
 id1.addEventListener("click", function () {
   membersBarChart();
@@ -25760,6 +25992,10 @@ id3.addEventListener("click", function () {
 id4.addEventListener("click", function () {
   eventsBarChart();
   window.onresize = eventsBarChart;
+});
+id5.addEventListener("click", function () {
+  coolFacts();
+  window.onresize = null;
 });
 
 window.onresize = membersBarChart;
