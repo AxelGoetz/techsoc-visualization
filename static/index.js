@@ -794,11 +794,8 @@ function eventsBarChart() {
 // Random facts
 // ----------------------------------------------------------
 function addNewDiv() {
-  try {
-      d3.select('svg').remove();
-  } catch(err) {
-    d3.select('.info').remove();
-  }
+  d3.select('svg').remove();
+  d3.select('.info').remove();
   let body = d3.select('body');
   let div = body.append('div')
     .attr('class', 'info')
