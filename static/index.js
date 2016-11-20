@@ -10,7 +10,7 @@ let eventsData = [];
 let facebookData = [];
 
 // Facebook access token
-let ACCESS_TOKEN = "CAAK3kpvZBViIBAOEZC6B1cXrA1HpCNSSz5WpTNpHUwWbSuSKlQKPtx3s28rKrSdk1ViWhk0f8g5XdppQAMsHl0FAhcKHYctj6CxiGC9BbG81jXoWIOYBOKftYB1KpLZCkBtQZCkbuo89JWoCmKazsAWih7MdMK59UbsPGHzYkP4ZAKZCjKXqTpowRVj3k9w14ZD";
+let ACCESS_TOKEN = "EAAK3kpvZBViIBAMxJJu8mMPFgzLXtCT0rRy2oxxWTqPEB0sW6PKNAZCduqkR4J7huDkWwKqKhOC3mkftP2sAL4Lc1Wk2Y0U35T4ulQAcBn8abHv6HNJMBagBJfrMKecYrhXofbfIohZB5MPZCefpipYZB4dVvEQMZD";
 
 
 // Extracting Data
@@ -193,7 +193,7 @@ d3.csv('./data/members.csv', (error, data) => {
 });
 
 // Gets all of the events data from UCLUTechsoc
-d3.json('http://techsoc.io/data/events.json', (error, data) => {
+d3.json('https://techsoc.io/data/events.json', (error, data) => {
   data = _.filter(data, d => (d.facebook_id !== undefined));
   _.map(data, getFacebookAttendees);
   eventsData = data;
