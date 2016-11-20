@@ -193,7 +193,7 @@ d3.csv('./data/members.csv', (error, data) => {
 });
 
 // Gets all of the events data from UCLUTechsoc
-d3.json('http://uclutech.com/data/events.json', (error, data) => {
+d3.json('https://techsoc.io/data/events.json', (error, data) => {
   data = _.filter(data, d => (d.facebook_id !== undefined));
   _.map(data, getFacebookAttendees);
   eventsData = data;
