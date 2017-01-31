@@ -10,7 +10,7 @@ let eventsData = [];
 let facebookData = [];
 
 // Facebook access token
-let ACCESS_TOKEN = "EAAK3kpvZBViIBAMxJJu8mMPFgzLXtCT0rRy2oxxWTqPEB0sW6PKNAZCduqkR4J7huDkWwKqKhOC3mkftP2sAL4Lc1Wk2Y0U35T4ulQAcBn8abHv6HNJMBagBJfrMKecYrhXofbfIohZB5MPZCefpipYZB4dVvEQMZD";
+let ACCESS_TOKEN = "EAAK3kpvZBViIBALfU2MNTMtWbFVXRVJASHVtITVYlwyufGuXKiZCBPpZBujUL3gKz5ZCQoovHjZB54jAvmnyjgVGRK6EsM5IF6iu8gzB0sn6YHBTGZAnK0oIJOzomF1CGdWUX9fa31SGAZAU3vSaTm6rOSi1cJdYe0ZD";
 
 
 // Extracting Data
